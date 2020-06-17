@@ -1,4 +1,4 @@
-namespace: pslogin-dev
+namespace: pslogin-prod
 
 bases:
 - ../../base
@@ -21,3 +21,6 @@ secretGenerator:
 
 resources:
 - ns.yaml
+
+patchesStrategicMerge:
+- sts-patch.yaml

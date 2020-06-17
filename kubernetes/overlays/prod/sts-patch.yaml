@@ -1,3 +1,41 @@
-# /reg/neh/home/
-
-
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pslogin
+  labels:
+    app: sshd
+spec:
+  serviceName: pslogin
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sshd
+  template:
+    metadata:
+      labels:
+        app: sshd
+    spec:
+      containers:
+      - name: pslogin
+        volumeMounts:
+        #- name: home
+        #  mountPath: /reg/neh/home/
+        #- name: home4
+        #  mountPath: /reg/neh/home4/
+        #- name: home5
+        #  mountPath: /reg/neh/home5/
+        - name: reg-neh
+          mountPath: /reg/neh/
+      volumes:
+      #- name: home
+      #  hostPath:
+      #    path: /reg/neh/home/
+      #- name: home4
+      #  hostPath:
+      #    path: /reg/neh/home4/
+      #- name: home5
+      #  hostPath:
+      #    path: /reg/neh/home5/
+      - name: reg-neh
+        hostPath:
+          path: /reg/neh/
