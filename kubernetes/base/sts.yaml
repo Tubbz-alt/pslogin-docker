@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pslogin
+  labels:
+    app: sshd
+spec:
+  serviceName: pslogin
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sshd
+  template:
+    metadata:
+      labels:
+        app: sshd
+    spec:
+      initContainers:
+      - name: sssd-conf
+        image: busybox:latest
+        command:
+        - "/bin/sh"
+        - "-c"
+        args:
+        - cp -v /in/sssd.conf /out/sssd.conf && chmod 600 /out/sssd.conf && mkdir /out/conf.d
+        volumeMounts:
+        - name: sssd
+          mountPath: /in
+        - name: sssd-conf
+          mountPath: /out
+      - name: ssh-conf
+        image: busybox:latest
+        command:
+        - "/bin/sh"
+        - "-c"
+        args:
+        - cp -v /in/* /out/ 
+        volumeMounts:
+        - name: ssh
+          mountPath: /in
+        - name: ssh-conf
+          mountPath: /out
+      containers:
+      - name: pslogin
+        image: slaclab/pslogin-docker:20200616.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 22
+        readinessProbe:
+          tcpSocket:
+            port: 22
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 22
+          initialDelaySeconds: 5
+          periodSeconds: 15
+        volumeMounts:
+        - name: sssd-conf
+          mountPath: /etc/sssd/
+        - name: sssd
+          mountPath: /etc/nslcd.conf
+          subPath: nslcd.conf
+        - name: sssd
+          mountPath: /etc/krb5.conf
+          subPath: krb5.conf
+        - name: ssh-conf
+          mountPath: /etc/ssh/keys/
+      volumes:
+      - name: sssd
+        configMap:
+          name: sssd
+      - name: sssd-conf
+        emptyDir: {}
+      - name: ssh
+        secret:
+          secretName: sshd
+      - name: ssh-conf
+        emptyDir: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pslogin
+  annotations:
+    metallb.universe.tf/address-pool: internal
+spec:
+  type: LoadBalancer
+  selector:
+    app: sshd
+  ports:
+    - protocol: TCP
+      port: 22
+      targetPort: 22
